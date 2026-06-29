@@ -36,7 +36,7 @@ st.subheader("⚡ Quick Premium Calculator")
 
 st.write("Calculate premium instantly without uploading an Excel file.")
 
-QUICK_RATE = 435          # Inclusive of GST
+QUICK_RATE = 368.64          # Inclusive of GST
 QUICK_GST = 0.18
 
 col1, col2 = st.columns([3,1])
@@ -119,7 +119,7 @@ st.divider()
 # SETTINGS
 # ============================================
 
-RATE_PER_LAKH = 435
+RATE_PER_LAKH = 368.64
 
 GST_RATE = 0.18
 
