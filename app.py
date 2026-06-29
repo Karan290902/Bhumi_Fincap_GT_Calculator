@@ -119,7 +119,7 @@ st.divider()
 # SETTINGS
 # ============================================
 
-RATE_PER_LAKH = 650
+RATE_PER_LAKH = 435
 
 GST_RATE = 0.18
 
