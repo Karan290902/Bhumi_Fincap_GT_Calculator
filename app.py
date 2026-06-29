@@ -1,10 +1,5 @@
-# ============================================
-# IMPORT LIBRARIES
-# ============================================
-
 import streamlit as st
 import pandas as pd
-import numpy as np
 
 # ============================================
 # PAGE CONFIG
@@ -21,107 +16,42 @@ st.set_page_config(
 # ============================================
 
 st.title("💰 Group Term Life Insurance Premium Calculator")
-
-st.markdown(
-    "Upload any insurance Excel file for premium calculation"
-)
-
-# ============================================
-# QUICK PREMIUM CALCULATOR
-# ============================================
-
-st.divider()
-
-st.subheader("⚡ Quick Premium Calculator")
-
-st.write("Calculate premium instantly without uploading an Excel file.")
-
-QUICK_RATE = 368.64          # Inclusive of GST
-QUICK_GST = 0.18
-
-col1, col2 = st.columns([3,1])
-
-with col1:
-
-    quick_sum_assured = st.number_input(
-        "Enter Sum Assured (₹)",
-        min_value=0,
-        value=1000000,
-        step=100000,
-        key="quick_sa"
-    )
-
-with col2:
-
-    st.write("")
-    st.write("")
-
-    calculate = st.button("Calculate Premium")
-
-if calculate:
-
-    total_premium = (
-
-        (quick_sum_assured / 100000)
-
-        *
-
-        QUICK_RATE
-
-    )
-
-    premium_excl = (
-
-        total_premium
-
-        /
-
-        (1 + QUICK_GST)
-
-    )
-
-    gst_amount = (
-
-        total_premium
-
-        -
-
-        premium_excl
-
-    )
-
-    c1, c2, c3 = st.columns(3)
-
-    with c1:
-
-        st.metric(
-            "Premium Excl GST",
-            f"₹ {premium_excl:,.2f}"
-        )
-
-    with c2:
-
-        st.metric(
-            "GST Amount",
-            f"₹ {gst_amount:,.2f}"
-        )
-
-    with c3:
-
-        st.metric(
-            "Total Premium",
-            f"₹ {total_premium:,.2f}"
-        )
-
-st.divider()
+st.markdown("Quick calculator or upload an Excel file for premium calculation.")
 
 # ============================================
 # SETTINGS
 # ============================================
 
-RATE_PER_LAKH = 368.64
-
+RATE_PER_LAKH = 435          # Inclusive of GST
 GST_RATE = 0.18
+
+# ============================================
+# QUICK PREMIUM CALCULATOR
+# ============================================
+
+st.subheader("⚡ Quick Premium Calculator")
+
+quick_sum_assured = st.number_input(
+    "Enter Sum Assured (₹)",
+    min_value=0.0,
+    value=1000000.0,
+    step=100000.0,
+    key="quick_sa"
+)
+
+if st.button("Calculate Premium"):
+
+    total_premium = (quick_sum_assured / 100000) * RATE_PER_LAKH
+    premium_excl = total_premium / (1 + GST_RATE)
+    gst_amount = total_premium - premium_excl
+
+    c1, c2, c3 = st.columns(3)
+
+    c1.metric("Premium Excl GST", f"₹ {premium_excl:,.2f}")
+    c2.metric("GST (18%)", f"₹ {gst_amount:,.2f}")
+    c3.metric("Total Premium (Incl GST)", f"₹ {total_premium:,.2f}")
+
+st.divider()
 
 # ============================================
 # FILE UPLOAD
@@ -140,192 +70,90 @@ if uploaded_file is not None:
 
     try:
 
-        # ============================================
-        # READ FILE
-        # ============================================
-
         df = pd.read_excel(uploaded_file)
-
-        # ============================================
-        # CLEAN COLUMN NAMES
-        # ============================================
-
         df.columns = df.columns.str.strip()
 
-        # ============================================
-        # SHOW ORIGINAL DATA
-        # ============================================
-
         st.subheader("Uploaded Data")
-
         st.dataframe(df.head())
 
-        # ============================================
-        # HANDLE MISSING COLUMNS
-        # ============================================
-
         required_columns = [
-
             'Loan Account No.',
-
             'Name of Primary Loan borrower',
-
             'Mobile No',
-
             'Sum Assured'
-
         ]
 
         for col in required_columns:
-
             if col not in df.columns:
-
                 df[col] = ""
 
-        # ============================================
-        # CLEAN SUM ASSURED
-        # ============================================
-
         df['Sum Assured'] = pd.to_numeric(
-
             df['Sum Assured'],
-
             errors='coerce'
-
         ).fillna(0)
 
-        # ============================================
-        # OPTIONAL AGE COLUMN
-        # ============================================
-
         if 'MAIN MEMBER AGE' not in df.columns:
-
             df['MAIN MEMBER AGE'] = 0
 
-        # ============================================
-        # OPTIONAL LOAN COLUMN
-        # ============================================
-
         if 'Loan Outstanding Amount' not in df.columns:
-
             df['Loan Outstanding Amount'] = 0
-        # ============================================
-        # PREMIUM CALCULATION
-        # ============================================
 
-        df['Premium Excl GST'] = (
-
-            (df['Sum Assured'] / 100000)
-
-            *
-
-            RATE_PER_LAKH
-
-        )
-
-        # ============================================
-        # GST CALCULATION
-        # ============================================
-
+        # Total Premium (Inclusive of GST)
         df['Premium + GST'] = (
-
-            df['Premium Excl GST']
-
-            +
-
-            (df['Premium Excl GST'] * GST_RATE)
-
+            (df['Sum Assured'] / 100000)
+            * RATE_PER_LAKH
         )
 
-        # ============================================
-        # FINAL OUTPUT
-        # ============================================
+        # Premium Excluding GST
+        df['Premium Excl GST'] = (
+            df['Premium + GST'] / (1 + GST_RATE)
+        )
+
+        # GST Amount
+        df['GST Amount'] = (
+            df['Premium + GST'] - df['Premium Excl GST']
+        )
 
         output_columns = [
-
             'Loan Account No.',
-
             'Name of Primary Loan borrower',
-
             'Mobile No',
-
             'MAIN MEMBER AGE',
-
             'Sum Assured',
-
             'Premium Excl GST',
-
+            'GST Amount',
             'Premium + GST'
-
         ]
 
         final_df = df[output_columns]
-
-        # ============================================
-        # DASHBOARD
-        # ============================================
 
         st.subheader("Portfolio Summary")
 
         col1, col2, col3 = st.columns(3)
 
-        with col1:
-
-            st.metric(
-                "Total Members",
-                len(final_df)
-            )
-
-        with col2:
-
-            st.metric(
-                "Total Sum Assured",
-                f"₹ {final_df['Sum Assured'].sum():,.0f}"
-            )
-
-        with col3:
-
-            st.metric(
-                "Total Premium",
-                f"₹ {final_df['Premium + GST'].sum():,.2f}"
-            )
-
-        # ============================================
-        # SHOW OUTPUT
-        # ============================================
+        col1.metric("Total Members", len(final_df))
+        col2.metric(
+            "Total Sum Assured",
+            f"₹ {final_df['Sum Assured'].sum():,.0f}"
+        )
+        col3.metric(
+            "Total Premium",
+            f"₹ {final_df['Premium + GST'].sum():,.2f}"
+        )
 
         st.subheader("Premium Calculation Output")
-
-        st.dataframe(
-
-            final_df,
-
-            use_container_width=True
-
-        )
-
-        # ============================================
-        # DOWNLOAD BUTTON
-        # ============================================
+        st.dataframe(final_df, use_container_width=True)
 
         output_file = "Premium_Output.xlsx"
-
-        final_df.to_excel(
-
-            output_file,
-
-            index=False
-
-        )
+        final_df.to_excel(output_file, index=False)
 
         with open(output_file, "rb") as file:
-
             st.download_button(
                 label="⬇ Download Output Excel",
                 data=file,
                 file_name=output_file,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-    except Exception as e:
 
+    except Exception as e:
         st.error(f"Error: {e}")
